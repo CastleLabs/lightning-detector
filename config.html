@@ -1,0 +1,385 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration - Lightning Detector v1.12{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <h2><i class="fas fa-cog"></i> Enhanced Configuration v1.12</h2>
+        <p class="text-muted">Configure your enhanced lightning detection system with advanced alert capabilities.</p>
+
+        <form method="POST" action="{{ url_for('save_config_route') }}">
+            <div class="config-section">
+                <h5><i class="fas fa-microchip"></i> Sensor Settings</h5>
+                <p class="text-muted small">Hardware configuration for the CJMCU-3935 lightning detector module.</p>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">SPI Bus</label>
+                            <input type="number" class="form-control" name="SENSOR_spi_bus"
+                                   value="{{ config.get('SENSOR', 'spi_bus') }}" min="0" max="1">
+                            <div class="form-text">Usually 0 for main SPI bus</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">SPI Device</label>
+                            <input type="number" class="form-control" name="SENSOR_spi_device"
+                                   value="{{ config.get('SENSOR', 'spi_device') }}" min="0" max="1">
+                            <div class="form-text">Chip select (CS) pin selection</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">IRQ Pin</label>
+                            <input type="number" class="form-control" name="SENSOR_irq_pin"
+                                   value="{{ config.get('SENSOR', 'irq_pin') }}" min="0" max="40">
+                            <div class="form-text">GPIO pin for interrupt signal</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Polling Interval (seconds)</label>
+                            <input type="number" class="form-control" name="SENSOR_polling_interval"
+                                   value="{{ config.get('SENSOR', 'polling_interval') }}" min="0.1" max="10" step="0.1">
+                            <div class="form-text">How often to check for events</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Sensitivity</label>
+                            <select class="form-select" name="SENSOR_sensitivity">
+                                <option value="low" {{ 'selected' if config.get('SENSOR', 'sensitivity') == 'low' else '' }}>Low (Less sensitive)</option>
+                                <option value="medium" {{ 'selected' if config.get('SENSOR', 'sensitivity') == 'medium' else '' }}>Medium (Balanced)</option>
+                                <option value="high" {{ 'selected' if config.get('SENSOR', 'sensitivity') == 'high' else '' }}>High (More sensitive)</option>
+                            </select>
+                            <div class="form-text">Detection sensitivity level</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" name="SENSOR_auto_start"
+                                       value="true" {{ 'checked' if config.getboolean('SENSOR', 'auto_start', fallback=True) else '' }}>
+                                <label class="form-check-label">Auto-start enhanced monitoring</label>
+                            </div>
+                            <div class="form-text">Start monitoring when application starts</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h5><i class="fab fa-slack"></i> Enhanced Slack Bot Settings v1.12</h5>
+                <p class="text-muted small">Configure Slack notifications with enhanced alert levels and rich formatting.</p>
+
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="SLACK_enabled"
+                               value="true" {{ 'checked' if config.getboolean('SLACK', 'enabled') else '' }}>
+                        <label class="form-check-label">Enable Enhanced Slack Notifications</label>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <strong><i class="fas fa-info-circle"></i> Enhanced Slack Bot Setup for v1.12:</strong>
+                    <ol class="mb-0 mt-2">
+                        <li>Go to <a href="https://api.slack.com/apps" target="_blank" rel="noopener">api.slack.com/apps</a></li>
+                        <li>Create a new app or select existing one</li>
+                        <li>Go to "OAuth & Permissions" → "Scopes" → "Bot Token Scopes"</li>
+                        <li>Add these scopes: <code>chat:write</code>, <code>chat:write.public</code>, <code>chat:write.customize</code></li>
+                        <li>Install the app to your workspace</li>
+                        <li>Copy the "Bot User OAuth Token" (starts with <code>xoxb-</code>)</li>
+                        <li>Invite the bot to your channel: <code>/invite @YourBotName</code></li>
+                        <li><strong>New in v1.12:</strong> Bot will send color-coded alerts with rich formatting</li>
+                    </ol>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Bot Token (xoxb-...)</label>
+                    <input type="password" class="form-control" name="SLACK_bot_token"
+                           value="{{ config.get('SLACK', 'bot_token') }}"
+                           placeholder="xoxb-1234567890-1234567890-abcdefghijklmnopqrstuvwx">
+                    <div class="form-text">Your Slack Bot User OAuth Token (keep this secure!)</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Channel</label>
+                    <input type="text" class="form-control" name="SLACK_channel"
+                           value="{{ config.get('SLACK', 'channel') }}" placeholder="#alerts">
+                    <div class="form-text">Channel name (with #) or user ID for direct messages</div>
+                </div>
+
+                <div class="mb-3">
+                    <a href="{{ url_for('test_slack') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-paper-plane"></i> Test Enhanced Slack Connection
+                    </a>
+                    <small class="text-muted ms-2">Send a test message with v1.12 formatting</small>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h5><i class="fas fa-bell"></i> Enhanced Alert Settings v1.12</h5>
+                <p class="text-muted small">Configure the new warning/critical/all-clear alert system.</p>
+
+                <div class="alert alert-success">
+                    <strong><i class="fas fa-star"></i> New in v1.12 - Enhanced Alert System:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li><strong>WARNING Alerts:</strong> Lightning strikes within 30km (but >10km)</li>
+                        <li><strong>CRITICAL Alerts:</strong> Lightning strikes within 10km</li>
+                        <li><strong>ALL-CLEAR Messages:</strong> Sent after 15 minutes of no lightning in respective zones</li>
+                        <li><strong>Smart Timers:</strong> Each zone has its own timer that resets on new strikes</li>
+                        <li><strong>Priority System:</strong> Critical alerts override warning alerts</li>
+                    </ul>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Warning Distance (km)</label>
+                            <input type="number" class="form-control" name="ALERTS_warning_distance"
+                                   value="{{ config.get('ALERTS', 'warning_distance', fallback='30') }}" min="1" max="40">
+                            <div class="form-text">Lightning within this distance triggers WARNING alerts</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Critical Distance (km)</label>
+                            <input type="number" class="form-control" name="ALERTS_critical_distance"
+                                   value="{{ config.get('ALERTS', 'critical_distance', fallback='10') }}" min="1" max="30">
+                            <div class="form-text">Lightning within this distance triggers CRITICAL alerts</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">All-Clear Timer (minutes)</label>
+                            <input type="number" class="form-control" name="ALERTS_all_clear_timer"
+                                   value="{{ config.get('ALERTS', 'all_clear_timer', fallback='15') }}" min="5" max="60">
+                            <div class="form-text">Time without lightning before sending all-clear message</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Energy Threshold</label>
+                            <input type="number" class="form-control" name="ALERTS_energy_threshold"
+                                   value="{{ config.get('ALERTS', 'energy_threshold') }}" min="0" max="1000000">
+                            <div class="form-text">Minimum energy level to trigger any alert</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning">
+                    <strong><i class="fas fa-exclamation-triangle"></i> Enhanced Alert Logic v1.12:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Lightning ≤10km → CRITICAL alert sent immediately, 15-min timer starts</li>
+                        <li>Lightning ≤30km (but >10km) → WARNING alert sent (unless critical active), 15-min timer starts</li>
+                        <li>Additional strikes in same zone reset the timer without sending duplicate alerts</li>
+                        <li>Critical alerts take priority and will cancel warning timers</li>
+                        <li>All-clear messages are automatically sent when timers expire</li>
+                    </ul>
+                </div>
+
+                <div class="collapse" id="legacySettings">
+                    <h6 class="mt-4">Legacy Settings (for compatibility)</h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Legacy Min Distance</label>
+                                <input type="number" class="form-control" name="ALERTS_min_distance"
+                                       value="{{ config.get('ALERTS', 'min_distance') }}" min="0" max="40">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Legacy Max Distance</label>
+                                <input type="number" class="form-control" name="ALERTS_max_distance"
+                                       value="{{ config.get('ALERTS', 'max_distance') }}" min="1" max="40">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Legacy Cooldown</label>
+                                <input type="number" class="form-control" name="ALERTS_cooldown_minutes"
+                                       value="{{ config.get('ALERTS', 'cooldown_minutes') }}" min="0" max="60">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#legacySettings">
+                    <i class="fas fa-cog"></i> Show Legacy Settings
+                </button>
+            </div>
+
+            <div class="config-section">
+                <h5><i class="fas fa-file-alt"></i> Enhanced Logging Settings v1.12</h5>
+                <p class="text-muted small">Configure application logging with enhanced alert system details.</p>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Log Level</label>
+                            <select class="form-select" name="LOGGING_level">
+                                <option value="DEBUG" {{ 'selected' if config.get('LOGGING', 'level') == 'DEBUG' else '' }}>Debug (Most verbose - includes alert details)</option>
+                                <option value="INFO" {{ 'selected' if config.get('LOGGING', 'level') == 'INFO' else '' }}>Info (Recommended - includes alert events)</option>
+                                <option value="WARNING" {{ 'selected' if config.get('LOGGING', 'level') == 'WARNING' else '' }}>Warning (Less verbose)</option>
+                                <option value="ERROR" {{ 'selected' if config.get('LOGGING', 'level') == 'ERROR' else '' }}>Error (Minimal)</option>
+                            </select>
+                            <div class="form-text">Level of detail in log files</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Max File Size (MB)</label>
+                            <input type="number" class="form-control" name="LOGGING_max_file_size"
+                                   value="{{ config.get('LOGGING', 'max_file_size') }}" min="1" max="100">
+                            <div class="form-text">Size limit before log rotation</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Backup Count</label>
+                            <input type="number" class="form-control" name="LOGGING_backup_count"
+                                   value="{{ config.get('LOGGING', 'backup_count') }}" min="1" max="10">
+                            <div class="form-text">Number of old log files to keep</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <strong><i class="fas fa-info-circle"></i> Enhanced Logging in v1.12:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Detailed alert state transitions (warning → critical → all-clear)</li>
+                        <li>Timer management events and resets</li>
+                        <li>Slack notification delivery status</li>
+                        <li>Enhanced error reporting with context</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <button type="submit" class="btn btn-primary btn-enhanced">
+                    <i class="fas fa-save"></i> Save Enhanced Configuration
+                </button>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary btn-enhanced">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </form>
+
+        <div class="mt-4 p-3 bg-light rounded">
+            <h6><i class="fas fa-question-circle"></i> Enhanced System Help v1.12</h6>
+            <div class="row">
+                <div class="col-md-4">
+                    <small>
+                        <strong>Hardware Setup:</strong><br>
+                        Ensure SPI is enabled: <code>sudo raspi-config</code><br>
+                        Check wiring connections to CJMCU-3935<br>
+                        Test with multimeter if needed
+                    </small>
+                </div>
+                <div class="col-md-4">
+                    <small>
+                        <strong>Enhanced Alert System:</strong><br>
+                        WARNING: Lightning ≤30km<br>
+                        CRITICAL: Lightning ≤10km<br>
+                        ALL-CLEAR: After 15 min timer
+                    </small>
+                </div>
+                <div class="col-md-4">
+                    <small>
+                        <strong>Troubleshooting:</strong><br>
+                        Check log: <code>lightning_detector.log</code><br>
+                        Reset alerts from dashboard<br>
+                        Test mode available if app is in debug mode
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Enhanced form validation and user experience improvements
+    document.addEventListener('DOMContentLoaded', function() {
+        // Enable Bootstrap form validation
+        const forms = document.querySelectorAll('form');
+        forms.forEach(form => {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            });
+        });
+
+        // Enhanced show/hide Slack settings based on enabled checkbox
+        const slackEnabled = document.querySelector('input[name="SLACK_enabled"]');
+        const slackSettings = document.querySelectorAll('input[name^="SLACK_"]:not([name="SLACK_enabled"])');
+
+        function toggleSlackSettings() {
+            slackSettings.forEach(input => {
+                const parentDiv = input.closest('.mb-3');
+                input.disabled = !slackEnabled.checked;
+                if (parentDiv) {
+                     parentDiv.style.opacity = input.disabled ? '0.6' : '1';
+                }
+            });
+        }
+
+        if(slackEnabled) {
+            slackEnabled.addEventListener('change', toggleSlackSettings);
+            toggleSlackSettings(); // Initial state
+        }
+
+
+        // Enhanced alert distance validation
+        const warningDistance = document.querySelector('input[name="ALERTS_warning_distance"]');
+        const criticalDistance = document.querySelector('input[name="ALERTS_critical_distance"]');
+
+        function validateAlertDistances() {
+            const warningVal = parseInt(warningDistance.value, 10);
+            const criticalVal = parseInt(criticalDistance.value, 10);
+
+            if (criticalVal >= warningVal) {
+                criticalDistance.setCustomValidity('Critical distance must be less than warning distance.');
+                warningDistance.setCustomValidity('Warning distance must be greater than critical distance.');
+            } else {
+                criticalDistance.setCustomValidity('');
+                warningDistance.setCustomValidity('');
+            }
+        }
+
+        if (warningDistance && criticalDistance) {
+            warningDistance.addEventListener('input', validateAlertDistances);
+            criticalDistance.addEventListener('input', validateAlertDistances);
+            validateAlertDistances();
+        }
+
+        // Enhanced visual feedback
+        const inputs = document.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.addEventListener('focus', function() {
+                this.closest('.mb-3').style.transform = 'scale(1.02)';
+                this.closest('.mb-3').style.transition = 'transform 0.2s ease';
+            });
+
+            input.addEventListener('blur', function() {
+                this.closest('.mb-3').style.transform = 'scale(1)';
+            });
+        });
+
+        console.log('Enhanced Configuration v1.12 loaded');
+    });
+</script>
+{% endblock %}

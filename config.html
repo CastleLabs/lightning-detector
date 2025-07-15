@@ -18,7 +18,7 @@
                         <div class="mb-3">
                             <label class="form-label">SPI Bus</label>
                             <input type="number" class="form-control" name="SENSOR_spi_bus"
-                                   value="{{ config.get('SENSOR', 'spi_bus') }}" min="0" max="1">
+                                   value="{{ config.get('SENSOR', 'spi_bus', fallback='0') }}" min="0" max="1">
                             <div class="form-text">Usually 0 for main SPI bus</div>
                         </div>
                     </div>
@@ -26,7 +26,7 @@
                         <div class="mb-3">
                             <label class="form-label">SPI Device</label>
                             <input type="number" class="form-control" name="SENSOR_spi_device"
-                                   value="{{ config.get('SENSOR', 'spi_device') }}" min="0" max="1">
+                                   value="{{ config.get('SENSOR', 'spi_device', fallback='0') }}" min="0" max="1">
                             <div class="form-text">Chip select (CS) pin selection</div>
                         </div>
                     </div>
@@ -34,7 +34,7 @@
                         <div class="mb-3">
                             <label class="form-label">IRQ Pin</label>
                             <input type="number" class="form-control" name="SENSOR_irq_pin"
-                                   value="{{ config.get('SENSOR', 'irq_pin') }}" min="0" max="40">
+                                   value="{{ config.get('SENSOR', 'irq_pin', fallback='2') }}" min="0" max="40">
                             <div class="form-text">GPIO pin for interrupt signal</div>
                         </div>
                     </div>
@@ -45,7 +45,7 @@
                         <div class="mb-3">
                             <label class="form-label">Polling Interval (seconds)</label>
                             <input type="number" class="form-control" name="SENSOR_polling_interval"
-                                   value="{{ config.get('SENSOR', 'polling_interval') }}" min="0.1" max="10" step="0.1">
+                                   value="{{ config.get('SENSOR', 'polling_interval', fallback='1.0') }}" min="0.1" max="10" step="0.1">
                             <div class="form-text">How often to check for events</div>
                         </div>
                     </div>
@@ -53,9 +53,9 @@
                         <div class="mb-3">
                             <label class="form-label">Sensitivity</label>
                             <select class="form-select" name="SENSOR_sensitivity">
-                                <option value="low" {{ 'selected' if config.get('SENSOR', 'sensitivity') == 'low' else '' }}>Low (Less sensitive)</option>
-                                <option value="medium" {{ 'selected' if config.get('SENSOR', 'sensitivity') == 'medium' else '' }}>Medium (Balanced)</option>
-                                <option value="high" {{ 'selected' if config.get('SENSOR', 'sensitivity') == 'high' else '' }}>High (More sensitive)</option>
+                                <option value="low" {{ 'selected' if config.get('SENSOR', 'sensitivity', fallback='medium') == 'low' else '' }}>Low (Less sensitive)</option>
+                                <option value="medium" {{ 'selected' if config.get('SENSOR', 'sensitivity', fallback='medium') == 'medium' else '' }}>Medium (Balanced)</option>
+                                <option value="high" {{ 'selected' if config.get('SENSOR', 'sensitivity', fallback='medium') == 'high' else '' }}>High (More sensitive)</option>
                             </select>
                             <div class="form-text">Detection sensitivity level</div>
                         </div>
@@ -64,7 +64,7 @@
                         <div class="mb-3">
                             <div class="form-check mt-4">
                                 <input class="form-check-input" type="checkbox" name="SENSOR_auto_start"
-                                       value="true" {{ 'checked' if config.getboolean('SENSOR', 'auto_start', fallback=True) else '' }}>
+                                       value="true" {{ 'checked' if config.get('SENSOR', 'auto_start', fallback='true') == 'true' else '' }}>
                                 <label class="form-check-label">Auto-start enhanced monitoring</label>
                             </div>
                             <div class="form-text">Start monitoring when application starts</div>
@@ -80,7 +80,7 @@
                 <div class="mb-3">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="SLACK_enabled"
-                               value="true" {{ 'checked' if config.getboolean('SLACK', 'enabled') else '' }}>
+                               value="true" {{ 'checked' if config.get('SLACK', 'enabled', fallback='true') == 'true' else '' }}>
                         <label class="form-check-label">Enable Enhanced Slack Notifications</label>
                     </div>
                 </div>
@@ -88,13 +88,13 @@
                 <div class="alert alert-info">
                     <strong><i class="fas fa-info-circle"></i> Enhanced Slack Bot Setup for v1.12:</strong>
                     <ol class="mb-0 mt-2">
-                        <li>Go to <a href="https://api.slack.com/apps" target="_blank" rel="noopener">api.slack.com/apps</a></li>
+                        <li>Go to <a href="https://api.slack.com/apps" target="_blank" rel="noopener" style="color: var(--accent-blue);">api.slack.com/apps</a></li>
                         <li>Create a new app or select existing one</li>
                         <li>Go to "OAuth & Permissions" → "Scopes" → "Bot Token Scopes"</li>
-                        <li>Add these scopes: <code>chat:write</code>, <code>chat:write.public</code>, <code>chat:write.customize</code></li>
+                        <li>Add these scopes: <code style="background: var(--bg-tertiary); padding: 2px 4px; border-radius: 4px;">chat:write</code>, <code style="background: var(--bg-tertiary); padding: 2px 4px; border-radius: 4px;">chat:write.public</code>, <code style="background: var(--bg-tertiary); padding: 2px 4px; border-radius: 4px;">chat:write.customize</code></li>
                         <li>Install the app to your workspace</li>
-                        <li>Copy the "Bot User OAuth Token" (starts with <code>xoxb-</code>)</li>
-                        <li>Invite the bot to your channel: <code>/invite @YourBotName</code></li>
+                        <li>Copy the "Bot User OAuth Token" (starts with <code style="background: var(--bg-tertiary); padding: 2px 4px; border-radius: 4px;">xoxb-</code>)</li>
+                        <li>Invite the bot to your channel: <code style="background: var(--bg-tertiary); padding: 2px 4px; border-radius: 4px;">/invite @YourBotName</code></li>
                         <li><strong>New in v1.12:</strong> Bot will send color-coded alerts with rich formatting</li>
                     </ol>
                 </div>
@@ -102,7 +102,7 @@
                 <div class="mb-3">
                     <label class="form-label">Bot Token (xoxb-...)</label>
                     <input type="password" class="form-control" name="SLACK_bot_token"
-                           value="{{ config.get('SLACK', 'bot_token') }}"
+                           value="{{ config.get('SLACK', 'bot_token', fallback='') }}"
                            placeholder="xoxb-1234567890-1234567890-abcdefghijklmnopqrstuvwx">
                     <div class="form-text">Your Slack Bot User OAuth Token (keep this secure!)</div>
                 </div>
@@ -110,7 +110,7 @@
                 <div class="mb-3">
                     <label class="form-label">Channel</label>
                     <input type="text" class="form-control" name="SLACK_channel"
-                           value="{{ config.get('SLACK', 'channel') }}" placeholder="#alerts">
+                           value="{{ config.get('SLACK', 'channel', fallback='#alerts') }}" placeholder="#alerts">
                     <div class="form-text">Channel name (with #) or user ID for direct messages</div>
                 </div>
 
@@ -169,7 +169,7 @@
                         <div class="mb-3">
                             <label class="form-label">Energy Threshold</label>
                             <input type="number" class="form-control" name="ALERTS_energy_threshold"
-                                   value="{{ config.get('ALERTS', 'energy_threshold') }}" min="0" max="1000000">
+                                   value="{{ config.get('ALERTS', 'energy_threshold', fallback='100000') }}" min="0" max="1000000">
                             <div class="form-text">Minimum energy level to trigger any alert</div>
                         </div>
                     </div>
@@ -185,37 +185,6 @@
                         <li>All-clear messages are automatically sent when timers expire</li>
                     </ul>
                 </div>
-
-                <div class="collapse" id="legacySettings">
-                    <h6 class="mt-4">Legacy Settings (for compatibility)</h6>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Legacy Min Distance</label>
-                                <input type="number" class="form-control" name="ALERTS_min_distance"
-                                       value="{{ config.get('ALERTS', 'min_distance') }}" min="0" max="40">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Legacy Max Distance</label>
-                                <input type="number" class="form-control" name="ALERTS_max_distance"
-                                       value="{{ config.get('ALERTS', 'max_distance') }}" min="1" max="40">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Legacy Cooldown</label>
-                                <input type="number" class="form-control" name="ALERTS_cooldown_minutes"
-                                       value="{{ config.get('ALERTS', 'cooldown_minutes') }}" min="0" max="60">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#legacySettings">
-                    <i class="fas fa-cog"></i> Show Legacy Settings
-                </button>
             </div>
 
             <div class="config-section">
@@ -227,10 +196,10 @@
                         <div class="mb-3">
                             <label class="form-label">Log Level</label>
                             <select class="form-select" name="LOGGING_level">
-                                <option value="DEBUG" {{ 'selected' if config.get('LOGGING', 'level') == 'DEBUG' else '' }}>Debug (Most verbose - includes alert details)</option>
-                                <option value="INFO" {{ 'selected' if config.get('LOGGING', 'level') == 'INFO' else '' }}>Info (Recommended - includes alert events)</option>
-                                <option value="WARNING" {{ 'selected' if config.get('LOGGING', 'level') == 'WARNING' else '' }}>Warning (Less verbose)</option>
-                                <option value="ERROR" {{ 'selected' if config.get('LOGGING', 'level') == 'ERROR' else '' }}>Error (Minimal)</option>
+                                <option value="DEBUG" {{ 'selected' if config.get('LOGGING', 'level', fallback='INFO') == 'DEBUG' else '' }}>Debug (Most verbose - includes alert details)</option>
+                                <option value="INFO" {{ 'selected' if config.get('LOGGING', 'level', fallback='INFO') == 'INFO' else '' }}>Info (Recommended - includes alert events)</option>
+                                <option value="WARNING" {{ 'selected' if config.get('LOGGING', 'level', fallback='INFO') == 'WARNING' else '' }}>Warning (Less verbose)</option>
+                                <option value="ERROR" {{ 'selected' if config.get('LOGGING', 'level', fallback='INFO') == 'ERROR' else '' }}>Error (Minimal)</option>
                             </select>
                             <div class="form-text">Level of detail in log files</div>
                         </div>
@@ -239,7 +208,7 @@
                         <div class="mb-3">
                             <label class="form-label">Max File Size (MB)</label>
                             <input type="number" class="form-control" name="LOGGING_max_file_size"
-                                   value="{{ config.get('LOGGING', 'max_file_size') }}" min="1" max="100">
+                                   value="{{ config.get('LOGGING', 'max_file_size', fallback='10') }}" min="1" max="100">
                             <div class="form-text">Size limit before log rotation</div>
                         </div>
                     </div>
@@ -247,7 +216,7 @@
                         <div class="mb-3">
                             <label class="form-label">Backup Count</label>
                             <input type="number" class="form-control" name="LOGGING_backup_count"
-                                   value="{{ config.get('LOGGING', 'backup_count') }}" min="1" max="10">
+                                   value="{{ config.get('LOGGING', 'backup_count', fallback='5') }}" min="1" max="10">
                             <div class="form-text">Number of old log files to keep</div>
                         </div>
                     </div>
@@ -274,13 +243,13 @@
             </div>
         </form>
 
-        <div class="mt-4 p-3 bg-light rounded">
+        <div class="mt-4 p-3 rounded config-section">
             <h6><i class="fas fa-question-circle"></i> Enhanced System Help v1.12</h6>
             <div class="row">
                 <div class="col-md-4">
                     <small>
                         <strong>Hardware Setup:</strong><br>
-                        Ensure SPI is enabled: <code>sudo raspi-config</code><br>
+                        Ensure SPI is enabled: <code style="background: var(--bg-tertiary); padding: 2px 4px; border-radius: 4px;">sudo raspi-config</code><br>
                         Check wiring connections to CJMCU-3935<br>
                         Test with multimeter if needed
                     </small>
@@ -296,7 +265,7 @@
                 <div class="col-md-4">
                     <small>
                         <strong>Troubleshooting:</strong><br>
-                        Check log: <code>lightning_detector.log</code><br>
+                        Check log: <code style="background: var(--bg-tertiary); padding: 2px 4px; border-radius: 4px;">lightning_detector.log</code><br>
                         Reset alerts from dashboard<br>
                         Test mode available if app is in debug mode
                     </small>
@@ -342,7 +311,6 @@
             toggleSlackSettings(); // Initial state
         }
 
-
         // Enhanced alert distance validation
         const warningDistance = document.querySelector('input[name="ALERTS_warning_distance"]');
         const criticalDistance = document.querySelector('input[name="ALERTS_critical_distance"]');
@@ -366,20 +334,36 @@
             validateAlertDistances();
         }
 
-        // Enhanced visual feedback
+        // Enhanced visual feedback with dark theme animations
         const inputs = document.querySelectorAll('input, select');
         inputs.forEach(input => {
             input.addEventListener('focus', function() {
                 this.closest('.mb-3').style.transform = 'scale(1.02)';
-                this.closest('.mb-3').style.transition = 'transform 0.2s ease';
+                this.closest('.mb-3').style.transition = 'transform 0.3s ease';
+                this.style.boxShadow = '0 0 20px rgba(88, 166, 255, 0.3)';
             });
 
             input.addEventListener('blur', function() {
                 this.closest('.mb-3').style.transform = 'scale(1)';
+                this.style.boxShadow = '';
             });
         });
 
-        console.log('Enhanced Configuration v1.12 loaded');
+        // Add smooth transitions to config sections
+        const configSections = document.querySelectorAll('.config-section');
+        configSections.forEach(section => {
+            section.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-2px)';
+                this.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.4)';
+            });
+
+            section.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+                this.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.2)';
+            });
+        });
+
+        console.log('Enhanced Dark Mode Configuration v1.12 loaded');
     });
 </script>
 {% endblock %}

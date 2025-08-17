@@ -99,14 +99,116 @@ sudo lightning-detector start
    - Open a browser and navigate to `http://[raspberry-pi-ip]`
    - The dashboard will show system status and detected events
 
+## System Service Configuration
+
+### Automatic Startup
+
+The installation script creates a systemd service that automatically starts on boot. To verify and manage the service:
+
+```bash
+# Enable automatic startup on boot
+sudo systemctl enable lightning-detector
+
+# Check if service is enabled
+sudo systemctl is-enabled lightning-detector
+
+# Disable automatic startup
+sudo systemctl disable lightning-detector
+```
+
+### Service Management
+
+The service is configured with automatic restart on failure. The systemd configuration includes:
+- **Restart=always** - Automatically restart if the service crashes
+- **RestartSec=10** - Wait 10 seconds before restarting
+- **After=network.target pigpiod.service** - Ensures network and GPIO daemon are ready
+
+Manual service control:
+
+```bash
+# Start the service
+sudo systemctl start lightning-detector
+
+# Stop the service
+sudo systemctl stop lightning-detector
+
+# Restart the service
+sudo systemctl restart lightning-detector
+
+# Check service status
+sudo systemctl status lightning-detector
+
+# View service logs
+sudo journalctl -u lightning-detector -f
+```
+
+### Service Health Monitoring
+
+The system includes multiple layers of failure recovery:
+
+1. **Systemd automatic restart** - Service level recovery
+2. **Watchdog thread** - Application level monitoring
+3. **Sensor health checks** - Hardware communication verification
+
+To check all components:
+
+```bash
+# Full system status
+sudo lightning-detector status
+
+# Check if service will start on boot
+sudo systemctl list-unit-files | grep lightning-detector
+
+# Verify pigpiod GPIO daemon
+sudo systemctl status pigpiod
+```
+
+### Manual Service Configuration
+
+If you need to modify the service behavior, edit the systemd unit file:
+
+```bash
+# Edit service configuration
+sudo nano /etc/systemd/system/lightning-detector.service
+
+# Reload systemd after changes
+sudo systemctl daemon-reload
+
+# Restart service with new configuration
+sudo systemctl restart lightning-detector
+```
+
+Default service configuration (`/etc/systemd/system/lightning-detector.service`):
+
+```ini
+[Unit]
+Description=Lightning Detector Service
+After=network.target pigpiod.service
+Wants=pigpiod.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/lightning-detector
+Environment="PATH=/usr/bin:/usr/local/bin"
+ExecStart=/usr/bin/python3 /opt/lightning-detector/lightning.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/opt/lightning-detector/logs/lightning.log
+StandardError=append:/opt/lightning-detector/logs/lightning-error.log
+
+[Install]
+WantedBy=multi-user.target
+```
+
 ## Usage
 
 ### Command Line Management
 
-The installation creates a `lightning-detector` command for easy control:
+The installation creates a `lightning-detector` helper command for easy control:
 
 ```bash
-# Service control
+# Quick service control
 sudo lightning-detector start    # Start the service
 sudo lightning-detector stop     # Stop the service
 sudo lightning-detector restart  # Restart the service

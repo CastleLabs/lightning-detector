@@ -1,0 +1,653 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration - Lightning Detector{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 offset-md-1">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-cog"></i> System Configuration</h2>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('test_slack') }}" class="btn btn-outline-info btn-sm">
+                    <i class="fas fa-paper-plane"></i> Test Slack
+                </a>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('save_config_route') }}">
+            <!-- Hardware Configuration -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-microchip"></i> Hardware Settings</h5>
+                    <small class="text-muted">SPI communication and GPIO configuration for the AS3935 sensor</small>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">SPI Bus</label>
+                                <select class="form-select" name="SENSOR_spi_bus">
+                                    <option value="0" {{ 'selected' if config.get('SENSOR', 'spi_bus', fallback='0') == '0' else '' }}>Bus 0 (Primary)</option>
+                                    <option value="1" {{ 'selected' if config.get('SENSOR', 'spi_bus', fallback='0') == '1' else '' }}>Bus 1 (Secondary)</option>
+                                </select>
+                                <div class="form-text">SPI bus number (usually 0)</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">SPI Device</label>
+                                <select class="form-select" name="SENSOR_spi_device">
+                                    <option value="0" {{ 'selected' if config.get('SENSOR', 'spi_device', fallback='0') == '0' else '' }}>Device 0 (CE0)</option>
+                                    <option value="1" {{ 'selected' if config.get('SENSOR', 'spi_device', fallback='0') == '1' else '' }}>Device 1 (CE1)</option>
+                                </select>
+                                <div class="form-text">Chip select pin</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">IRQ Pin (GPIO)</label>
+                                <input type="number" class="form-control" name="SENSOR_irq_pin"
+                                       value="{{ config.get('SENSOR', 'irq_pin', fallback='2') }}" 
+                                       min="0" max="27" step="1">
+                                <div class="form-text">GPIO pin for interrupt signal (BCM numbering)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">SPI Mode</label>
+                                <select class="form-select" name="SENSOR_spi_mode">
+                                    <option value="0" {{ 'selected' if config.get('SENSOR', 'spi_mode', fallback='1') == '0' else '' }}>Mode 0</option>
+                                    <option value="1" {{ 'selected' if config.get('SENSOR', 'spi_mode', fallback='1') == '1' else '' }}>Mode 1 (Default)</option>
+                                    <option value="2" {{ 'selected' if config.get('SENSOR', 'spi_mode', fallback='1') == '2' else '' }}>Mode 2</option>
+                                    <option value="3" {{ 'selected' if config.get('SENSOR', 'spi_mode', fallback='1') == '3' else '' }}>Mode 3</option>
+                                </select>
+                                <div class="form-text">SPI communication mode</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">SPI Speed (Hz)</label>
+                                <select class="form-select" name="SENSOR_spi_max_hz">
+                                    <option value="1000000" {{ 'selected' if config.get('SENSOR', 'spi_max_hz', fallback='2000000') == '1000000' else '' }}>1 MHz</option>
+                                    <option value="2000000" {{ 'selected' if config.get('SENSOR', 'spi_max_hz', fallback='2000000') == '2000000' else '' }}>2 MHz (Default)</option>
+                                    <option value="4000000" {{ 'selected' if config.get('SENSOR', 'spi_max_hz', fallback='2000000') == '4000000' else '' }}>4 MHz</option>
+                                    <option value="8000000" {{ 'selected' if config.get('SENSOR', 'spi_max_hz', fallback='2000000') == '8000000' else '' }}>8 MHz</option>
+                                </select>
+                                <div class="form-text">SPI clock frequency</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check mt-4 pt-2">
+                                <input class="form-check-input" type="checkbox" name="SENSOR_irq_active_high" 
+                                       value="true" {{ 'checked' if config.getboolean('SENSOR', 'irq_active_high', fallback=True) else '' }}>
+                                <label class="form-check-label">IRQ Active High</label>
+                                <div class="form-text">Interrupt signal polarity</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check mt-4 pt-2">
+                                <input class="form-check-input" type="checkbox" name="SENSOR_auto_start" 
+                                       value="true" {{ 'checked' if config.getboolean('SENSOR', 'auto_start', fallback=True) else '' }}>
+                                <label class="form-check-label">Auto-start Monitoring</label>
+                                <div class="form-text">Start monitoring on system boot</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detection Configuration -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-bolt"></i> Detection Settings</h5>
+                    <small class="text-muted">Lightning detection sensitivity and environmental configuration</small>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Detection Sensitivity</label>
+                                <select class="form-select" name="SENSOR_sensitivity">
+                                    <option value="low" {{ 'selected' if config.get('SENSOR', 'sensitivity', fallback='high') == 'low' else '' }}>Low (Outdoor/Noisy)</option>
+                                    <option value="medium" {{ 'selected' if config.get('SENSOR', 'sensitivity', fallback='high') == 'medium' else '' }}>Medium (Balanced)</option>
+                                    <option value="high" {{ 'selected' if config.get('SENSOR', 'sensitivity', fallback='high') == 'high' else '' }}>High (Indoor/Quiet)</option>
+                                </select>
+                                <div class="form-text">Overall detection sensitivity level</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check mt-4 pt-2">
+                                <input class="form-check-input" type="checkbox" name="SENSOR_indoor" 
+                                       value="true" {{ 'checked' if config.getboolean('SENSOR', 'indoor', fallback=True) else '' }}>
+                                <label class="form-check-label">Indoor Mode</label>
+                                <div class="form-text">Optimize for indoor use (higher gain, better for testing)</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check mt-4 pt-2">
+                                <input class="form-check-input" type="checkbox" name="DISPLAY_use_imperial_units" 
+                                       value="true" {{ 'checked' if config.getboolean('DISPLAY', 'use_imperial_units', fallback=True) else '' }}>
+                                <label class="form-check-label">Use Imperial Units</label>
+                                <div class="form-text">Display distances in miles instead of kilometers</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alert Configuration -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-bell"></i> Alert Settings</h5>
+                    <small class="text-muted">Configure distance thresholds and alert timing</small>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    Critical Distance 
+                                    <small class="text-muted">(stored in km{% if use_imperial %}, displayed in miles{% endif %})</small>
+                                </label>
+                                <input type="number" class="form-control" name="ALERTS_critical_distance"
+                                       value="{{ config.get('ALERTS', 'critical_distance', fallback='10') }}" 
+                                       min="1" max="50" step="0.5">
+                                <div class="form-text">Triggers immediate critical alerts</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    Warning Distance 
+                                    <small class="text-muted">(stored in km{% if use_imperial %}, displayed in miles{% endif %})</small>
+                                </label>
+                                <input type="number" class="form-control" name="ALERTS_warning_distance"
+                                       value="{{ config.get('ALERTS', 'warning_distance', fallback='30') }}" 
+                                       min="1" max="100" step="0.5">
+                                <div class="form-text">Triggers warning notifications</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">All-Clear Timer (minutes)</label>
+                                <input type="number" class="form-control" name="ALERTS_all_clear_timer"
+                                       value="{{ config.get('ALERTS', 'all_clear_timer', fallback='15') }}" 
+                                       min="5" max="60" step="5">
+                                <div class="form-text">Time before sending all-clear message</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Energy Threshold</label>
+                                <input type="number" class="form-control" name="ALERTS_energy_threshold"
+                                       value="{{ config.get('ALERTS', 'energy_threshold', fallback='100000') }}" 
+                                       min="0" step="10000">
+                                <div class="form-text">Minimum energy level for alerts</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Noise Handling Configuration -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-shield-alt"></i> Noise Handling</h5>
+                    <small class="text-muted">Automatic noise mitigation and sensitivity adjustment</small>
+                </div>
+                <div class="card-body">
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="NOISE_HANDLING_enabled" 
+                               value="true" {{ 'checked' if config.getboolean('NOISE_HANDLING', 'enabled', fallback=True) else '' }}>
+                        <label class="form-check-label">Enable Dynamic Noise Handling</label>
+                        <div class="form-text">Automatically adjust sensitivity in noisy environments</div>
+                    </div>
+
+                    <div class="row" id="noiseHandlingSettings">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Event Threshold</label>
+                                <input type="number" class="form-control" name="NOISE_HANDLING_event_threshold"
+                                       value="{{ config.get('NOISE_HANDLING', 'event_threshold', fallback='15') }}" 
+                                       min="5" max="50" step="1">
+                                <div class="form-text">Disturber events before adjustment</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Time Window (seconds)</label>
+                                <input type="number" class="form-control" name="NOISE_HANDLING_time_window_seconds"
+                                       value="{{ config.get('NOISE_HANDLING', 'time_window_seconds', fallback='120') }}" 
+                                       min="30" max="300" step="30">
+                                <div class="form-text">Time window for counting events</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Raised Noise Floor Level</label>
+                                <select class="form-select" name="NOISE_HANDLING_raised_noise_floor_level">
+                                    <option value="4" {{ 'selected' if config.get('NOISE_HANDLING', 'raised_noise_floor_level', fallback='5') == '4' else '' }}>Level 4</option>
+                                    <option value="5" {{ 'selected' if config.get('NOISE_HANDLING', 'raised_noise_floor_level', fallback='5') == '5' else '' }}>Level 5 (Default)</option>
+                                    <option value="6" {{ 'selected' if config.get('NOISE_HANDLING', 'raised_noise_floor_level', fallback='5') == '6' else '' }}>Level 6</option>
+                                    <option value="7" {{ 'selected' if config.get('NOISE_HANDLING', 'raised_noise_floor_level', fallback='5') == '7' else '' }}>Level 7 (Maximum)</option>
+                                </select>
+                                <div class="form-text">Noise floor when elevated (0-7, higher = less sensitive)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Revert Delay (minutes)</label>
+                                <input type="number" class="form-control" name="NOISE_HANDLING_revert_delay_minutes"
+                                       value="{{ config.get('NOISE_HANDLING', 'revert_delay_minutes', fallback='10') }}" 
+                                       min="5" max="60" step="5">
+                                <div class="form-text">Time before reverting to normal sensitivity</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slack Notifications -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fab fa-slack"></i> Slack Notifications</h5>
+                    <small class="text-muted">Configure Slack bot integration for real-time alerts</small>
+                </div>
+                <div class="card-body">
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="SLACK_enabled" id="slackEnabled"
+                               value="true" {{ 'checked' if config.getboolean('SLACK', 'enabled', fallback=False) else '' }}>
+                        <label class="form-check-label">Enable Slack Notifications</label>
+                        <div class="form-text">Send lightning alerts to Slack channels</div>
+                    </div>
+
+                    <div id="slackSettings">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label">Bot Token</label>
+                                    <input type="password" class="form-control" name="SLACK_bot_token"
+                                           value="{{ config.get('SLACK', 'bot_token', fallback='') }}"
+                                           placeholder="xoxb-1234567890-1234567890-abcdefghijklmnopqrstuvwx">
+                                    <div class="form-text">
+                                        Slack bot token from your app configuration
+                                        <a href="https://api.slack.com/apps" target="_blank" class="text-info">
+                                            <i class="fas fa-external-link-alt"></i> Get Token
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Channel</label>
+                                    <input type="text" class="form-control" name="SLACK_channel"
+                                           value="{{ config.get('SLACK', 'channel', fallback='#alerts') }}" 
+                                           placeholder="#alerts">
+                                    <div class="form-text">Target channel or user ID</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Slack Setup Instructions:</strong>
+                            <ol class="mb-0 mt-2">
+                                <li>Create a Slack app at <a href="https://api.slack.com/apps" target="_blank">api.slack.com/apps</a></li>
+                                <li>Add the "chat:write" OAuth scope</li>
+                                <li>Install the app to your workspace</li>
+                                <li>Copy the "Bot User OAuth Token" here</li>
+                                <li>Invite the bot to your target channel</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Settings -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-cogs"></i> System Settings</h5>
+                    <small class="text-muted">Logging, debugging, and system behavior configuration</small>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Log Level</label>
+                                <select class="form-select" name="LOGGING_level">
+                                    <option value="DEBUG" {{ 'selected' if config.get('LOGGING', 'level', fallback='INFO') == 'DEBUG' else '' }}>DEBUG (Verbose)</option>
+                                    <option value="INFO" {{ 'selected' if config.get('LOGGING', 'level', fallback='INFO') == 'INFO' else '' }}>INFO (Default)</option>
+                                    <option value="WARNING" {{ 'selected' if config.get('LOGGING', 'level', fallback='INFO') == 'WARNING' else '' }}>WARNING</option>
+                                    <option value="ERROR" {{ 'selected' if config.get('LOGGING', 'level', fallback='INFO') == 'ERROR' else '' }}>ERROR (Minimal)</option>
+                                </select>
+                                <div class="form-text">Amount of detail in log files</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Max Log File Size (MB)</label>
+                                <input type="number" class="form-control" name="LOGGING_max_file_size"
+                                       value="{{ config.get('LOGGING', 'max_file_size', fallback='10') }}" 
+                                       min="1" max="100" step="1">
+                                <div class="form-text">Log file rotation size</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Backup Count</label>
+                                <input type="number" class="form-control" name="LOGGING_backup_count"
+                                       value="{{ config.get('LOGGING', 'backup_count', fallback='5') }}" 
+                                       min="1" max="20" step="1">
+                                <div class="form-text">Number of old log files to keep</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check mt-4 pt-2">
+                                <input class="form-check-input" type="checkbox" name="SYSTEM_debug" 
+                                       value="true" {{ 'checked' if config.getboolean('SYSTEM', 'debug', fallback=False) else '' }}>
+                                <label class="form-check-label">Debug Mode</label>
+                                <div class="form-text">Enable testing features and detailed logging</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration Actions -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h6 class="mb-1">Save Configuration</h6>
+                            <small class="text-muted">
+                                Changes will be saved to config.ini. Some changes may require a system restart to take effect.
+                            </small>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="d-flex gap-2 justify-content-end">
+                                <button type="button" onclick="resetForm()" class="btn btn-outline-warning">
+                                    <i class="fas fa-undo"></i> Reset
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Configuration
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </form>
+
+        <!-- Configuration Validation -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-check-circle"></i> Configuration Validation</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="configValidation">
+                            <div class="d-flex align-items-center">
+                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                <span>Validating configuration...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-tools"></i> Configuration Tools</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Testing & Diagnostics</h6>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <a href="{{ url_for('test_slack') }}" class="btn btn-outline-primary btn-sm">
+                                        <i class="fab fa-slack"></i> Test Slack
+                                    </a>
+                                    <a href="{{ url_for('health_check') }}" target="_blank" class="btn btn-outline-success btn-sm">
+                                        <i class="fas fa-heartbeat"></i> Health Check
+                                    </a>
+                                    <a href="{{ url_for('full_diagnostic') }}" target="_blank" class="btn btn-outline-info btn-sm">
+                                        <i class="fas fa-stethoscope"></i> Full Diagnostic
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>System Information</h6>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <a href="{{ url_for('api_status') }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                                        <i class="fas fa-code"></i> API Status
+                                    </a>
+                                    <a href="{{ url_for('metrics') }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                                        <i class="fas fa-chart-line"></i> Metrics
+                                    </a>
+                                    <button onclick="downloadConfig()" class="btn btn-outline-secondary btn-sm">
+                                        <i class="fas fa-download"></i> Export Config
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function toggleSlackSettings() {
+        const slackEnabled = document.getElementById('slackEnabled');
+        const slackSettings = document.getElementById('slackSettings');
+        const slackInputs = slackSettings.querySelectorAll('input');
+        
+        if (slackEnabled.checked) {
+            slackSettings.style.opacity = '1';
+            slackInputs.forEach(input => input.disabled = false);
+        } else {
+            slackSettings.style.opacity = '0.5';
+            slackInputs.forEach(input => input.disabled = true);
+        }
+    }
+
+    function toggleNoiseHandling() {
+        const noiseEnabled = document.querySelector('input[name="NOISE_HANDLING_enabled"]');
+        const noiseSettings = document.getElementById('noiseHandlingSettings');
+        const noiseInputs = noiseSettings.querySelectorAll('input, select');
+        
+        if (noiseEnabled.checked) {
+            noiseSettings.style.opacity = '1';
+            noiseInputs.forEach(input => input.disabled = false);
+        } else {
+            noiseSettings.style.opacity = '0.5';
+            noiseInputs.forEach(input => input.disabled = true);
+        }
+    }
+
+    function validateConfiguration() {
+        const validationDiv = document.getElementById('configValidation');
+        
+        // Validate distance settings
+        const criticalDistance = parseInt(document.querySelector('input[name="ALERTS_critical_distance"]').value);
+        const warningDistance = parseInt(document.querySelector('input[name="ALERTS_warning_distance"]').value);
+        
+        let issues = [];
+        
+        if (criticalDistance >= warningDistance) {
+            issues.push('Critical distance must be less than warning distance');
+        }
+        
+        if (criticalDistance < 1 || criticalDistance > 63) {
+            issues.push('Critical distance must be between 1 and 63 km');
+        }
+        
+        if (warningDistance < 1 || warningDistance > 63) {
+            issues.push('Warning distance must be between 1 and 63 km');
+        }
+        
+        // Validate GPIO pin
+        const irqPin = parseInt(document.querySelector('input[name="SENSOR_irq_pin"]').value);
+        if (irqPin < 0 || irqPin > 27) {
+            issues.push('IRQ pin must be between 0 and 27');
+        }
+        
+        // Check for reserved pins
+        const reservedPins = [0, 1, 14, 15];
+        if (reservedPins.includes(irqPin)) {
+            issues.push(`Warning: GPIO pin ${irqPin} may conflict with system functions`);
+        }
+        
+        // Validate Slack settings if enabled
+        const slackEnabled = document.getElementById('slackEnabled').checked;
+        if (slackEnabled) {
+            const botToken = document.querySelector('input[name="SLACK_bot_token"]').value;
+            const channel = document.querySelector('input[name="SLACK_channel"]').value;
+            
+            if (!botToken || !botToken.startsWith('xoxb-')) {
+                issues.push('Invalid Slack bot token format');
+            }
+            
+            if (!channel || (!channel.startsWith('#') && !channel.startsWith('@'))) {
+                issues.push('Slack channel should start with # or @');
+            }
+        }
+        
+        // Display validation results
+        if (issues.length === 0) {
+            validationDiv.innerHTML = `
+                <div class="d-flex align-items-center text-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <span>Configuration is valid</span>
+                </div>
+            `;
+        } else {
+            validationDiv.innerHTML = `
+                <div class="text-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <span>Configuration issues found:</span>
+                    <ul class="mb-0 mt-2">
+                        ${issues.map(issue => `<li>${issue}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+    }
+
+    function resetForm() {
+        if (confirm('Reset all configuration values to their current saved state?')) {
+            window.location.reload();
+        }
+    }
+
+    function downloadConfig() {
+        // Create a simple config summary
+        const config = {
+            timestamp: new Date().toISOString(),
+            hardware: {
+                spi_bus: document.querySelector('select[name="SENSOR_spi_bus"]').value,
+                spi_device: document.querySelector('select[name="SENSOR_spi_device"]').value,
+                irq_pin: document.querySelector('input[name="SENSOR_irq_pin"]').value,
+                spi_mode: document.querySelector('select[name="SENSOR_spi_mode"]').value,
+                spi_speed: document.querySelector('select[name="SENSOR_spi_max_hz"]').value
+            },
+            detection: {
+                sensitivity: document.querySelector('select[name="SENSOR_sensitivity"]').value,
+                indoor_mode: document.querySelector('input[name="SENSOR_indoor"]').checked,
+                imperial_units: document.querySelector('input[name="DISPLAY_use_imperial_units"]').checked
+            },
+            alerts: {
+                critical_distance: document.querySelector('input[name="ALERTS_critical_distance"]').value,
+                warning_distance: document.querySelector('input[name="ALERTS_warning_distance"]').value,
+                all_clear_timer: document.querySelector('input[name="ALERTS_all_clear_timer"]').value,
+                energy_threshold: document.querySelector('input[name="ALERTS_energy_threshold"]').value
+            },
+            slack: {
+                enabled: document.getElementById('slackEnabled').checked,
+                channel: document.querySelector('input[name="SLACK_channel"]').value
+            }
+        };
+        
+        const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `lightning-detector-config-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize toggle states
+        toggleSlackSettings();
+        toggleNoiseHandling();
+        
+        // Add event listeners
+        document.getElementById('slackEnabled').addEventListener('change', toggleSlackSettings);
+        document.querySelector('input[name="NOISE_HANDLING_enabled"]').addEventListener('change', toggleNoiseHandling);
+        
+        // Add validation listeners
+        const validationInputs = document.querySelectorAll('input[type="number"], select');
+        validationInputs.forEach(input => {
+            input.addEventListener('change', validateConfiguration);
+        });
+        
+        // Initial validation
+        setTimeout(validateConfiguration, 500);
+        
+        // Add form submission handler
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            
+            // Re-enable if form validation fails
+            setTimeout(() => {
+                if (submitBtn.disabled) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Configuration';
+                }
+            }, 5000);
+        });
+        
+        // Add tooltips for complex settings
+        const tooltips = [
+            { selector: 'input[name="SENSOR_spi_mode"]', text: 'SPI communication mode - Mode 1 works best for AS3935' },
+            { selector: 'input[name="NOISE_HANDLING_raised_noise_floor_level"]', text: 'Higher values reduce sensitivity to noise but may miss weak lightning' },
+            { selector: 'input[name="ALERTS_energy_threshold"]', text: 'Lightning events below this energy level will not trigger alerts' }
+        ];
+        
+        tooltips.forEach(tip => {
+            const element = document.querySelector(tip.selector);
+            if (element) {
+                element.setAttribute('title', tip.text);
+                element.setAttribute('data-bs-toggle', 'tooltip');
+            }
+        });
+        
+        // Initialize Bootstrap tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
+{% endblock %}

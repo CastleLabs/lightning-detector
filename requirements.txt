@@ -1,0 +1,22 @@
+# Lightning Detector Python Dependencies v2.0
+# Event-Driven & Hardened Architecture
+# Install with: pip install -r requirements.txt
+
+# Flask web framework
+Flask==2.3.3
+
+# Raspberry Pi GPIO control
+RPi.GPIO==0.7.1
+
+# SPI device communication
+spidev==3.6
+
+# HTTP requests for Slack API
+requests==2.31.0
+
+# Additional recommended packages for production
+Werkzeug==2.3.7
+Jinja2==3.1.2
+MarkupSafe==2.1.3
+itsdangerous==2.1.2
+click==8.1.7

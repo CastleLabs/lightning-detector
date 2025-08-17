@@ -397,6 +397,12 @@ sudo systemctl restart lightning-detector
 
 ## API Endpoints
 
+### Web Interface
+
+- `GET /` - Main dashboard with system status and event history
+- `GET /config` - Configuration management interface
+- `POST /save_config` - Save configuration changes
+
 ### Status and Monitoring
 
 - `GET /api/status` - JSON system status
@@ -409,9 +415,56 @@ sudo systemctl restart lightning-detector
 - `GET /stop_monitoring` - Stop detection system
 - `GET /reset_alerts` - Clear all active alerts
 
-### Testing (Debug Mode)
+### Diagnostic Endpoints
 
-- `GET /test_alerts?type={warning|critical}` - Test alert system
+- `GET /full_diagnostic` - Complete diagnostic of AS3935 sensor and GPIO
+  - Tests GPIO pin state
+  - **Reads registers:** 0x00-0x08 (all configuration and status registers)
+  - **Writes registers:** 0x01 (noise floor), 0x02 (spike rejection) for sensitivity testing
+  - Attempts to generate disturber by manipulating sensitivity
+  - Returns detailed JSON report with decoded register values
+
+- `GET /check_sensor` - Check and fix sensor configuration
+  - **Reads registers:** 0x00, 0x01, 0x02, 0x03, 0x07
+  - **Writes register:** 0x03 to clear MASK_DIST bit if set (ensures disturbers are detected)
+  - Clears pending interrupts by reading register 0x03 multiple times
+  - Returns register values and applied fixes
+
+- `GET /force_recalibrate` - Aggressive sensor reset and recalibration
+  - **Writes register:** 0x3C with value 0x96 (direct reset command)
+  - **Writes register:** 0x00 (AFE gain) to outdoor mode temporarily
+  - **Writes register:** 0x01 to maximum noise floor (0x07) temporarily
+  - **Reads register:** 0x03 multiple times to clear interrupts
+  - Calls power_up() to restore all original settings
+  - Returns step-by-step recalibration results
+
+- `GET /force_trigger` - Force a test interrupt
+  - **Reads registers:** 0x01, 0x02 to save current settings
+  - **Writes register:** 0x01 to 0x00 (minimum noise floor/watchdog)
+  - **Writes register:** 0x02 to 0x00 (minimum spike rejection)
+  - **Writes register:** 0x03 to clear MASK_DIST bit
+  - **Reads register:** 0x03 to check for generated interrupt
+  - Restores original register values after test
+  - Returns interrupt detection results
+
+- `GET /monitor_interrupts` - Real-time interrupt monitoring
+  - **Reads register:** 0x03 (interrupt status) continuously
+  - Polls 10 times over 5 seconds
+  - Returns array of interrupt values with decoded meanings
+
+- `GET /test_piezo` - Special test mode for piezo lighter detection
+  - **Reads registers:** 0x00, 0x01, 0x02, 0x03 to save current state
+  - **Writes register:** 0x00 to 0x1C (outdoor AFE gain)
+  - **Writes register:** 0x01 to 0x22 (moderate noise floor/watchdog)
+  - **Writes register:** 0x02 to 0x20 (moderate spike rejection)
+  - **Reads register:** 0x03 continuously for 12 seconds
+  - **Reads registers:** 0x07 (distance), 0x04-0x06 (energy) when lightning detected
+  - Restores all original register values after test
+  - Returns all detections during test period
+
+### Testing Endpoints
+
+- `GET /test_alerts?type={warning|critical}` - Test alert system (debug mode only)
 - `GET /test_slack` - Test Slack integration
 
 ## Slack Setup
@@ -434,6 +487,64 @@ sudo systemctl restart lightning-detector
    - Set token in config: `sudo lightning-detector config`
    - Enable Slack notifications
    - Set target channel
+
+## Technical Details
+
+### AS3935 Register Operations
+
+The software directly reads and writes AS3935 registers via SPI for configuration and monitoring:
+
+#### Key Registers Used
+
+| Register | Name | Purpose | Read/Write Operations |
+|----------|------|---------|----------------------|
+| 0x00 | AFE_GAIN/PWD | Analog front-end gain and power control | R/W - Set indoor/outdoor mode, power up/down |
+| 0x01 | NF_LEV/WDTH | Noise floor level and watchdog threshold | R/W - Adjust sensitivity dynamically |
+| 0x02 | SREJ | Spike rejection and lightning detection settings | R/W - Configure false positive filtering |
+| 0x03 | INT/MASK_DIST | Interrupt status and disturber masking | R/W - Read interrupt reason, enable/disable disturbers |
+| 0x04-0x06 | ENERGY | Lightning energy (20-bit value across 3 registers) | R - Read energy level of detected strike |
+| 0x07 | DISTANCE | Estimated distance to lightning | R - Get distance in km (1-63) |
+| 0x08 | DISP_LCO | Display local oscillator on IRQ pin | W - Used during calibration |
+| 0x3C | PRESET | Direct command register | W - Send reset command (0x96) |
+
+#### Register Bit Fields
+
+**Register 0x00 (AFE_GAIN/PWD):**
+- Bit 0: PWD - Power down (0=active, 1=powered down)
+- Bits 1-5: AFE_GB - Gain boost (0x12=indoor/18x, 0x0E=outdoor/14x)
+
+**Register 0x01 (NF_LEV/WDTH):**
+- Bits 0-3: WDTH - Watchdog threshold (0x00-0x0F)
+- Bits 4-6: NF_LEV - Noise floor level (0x00-0x07, higher=less sensitive)
+
+**Register 0x03 (INT/MASK_DIST):**
+- Bits 0-3: INT - Interrupt reason
+  - 0x01: INT_NH - Noise level too high
+  - 0x04: INT_D - Disturber detected
+  - 0x08: INT_L - Lightning detected
+- Bit 5: MASK_DIST - Mask disturber events (0=show, 1=hide)
+
+### Normal Operation Flow
+
+1. **Initialization** (`power_up()`):
+   - Write 0x3C = 0x96 (reset)
+   - Write 0x00 (set AFE gain for indoor/outdoor)
+   - Write 0x01 (set noise floor and watchdog)
+   - Write 0x02 (set spike rejection)
+   - Clear bit 5 of 0x03 (enable disturber detection)
+   - Read 0x03 multiple times to clear interrupts
+
+2. **Interrupt Handling**:
+   - GPIO interrupt triggers
+   - Read 0x03 to get interrupt reason
+   - If lightning (0x08): read 0x07 (distance) and 0x04-0x06 (energy)
+   - If disturber (0x04): count for noise handling
+   - If noise high (0x01): adjust noise floor
+   - Read 0x03 again to clear interrupt
+
+3. **Dynamic Noise Adjustment**:
+   - Write 0x01 with higher NF_LEV value when noise detected
+   - Automatically revert after quiet period
 
 ## Performance Specifications
 

@@ -546,22 +546,20 @@ class AS3935LightningDetector:
     def verify_spi_connection(self):
         """
         Verify SPI connection is working properly
-
+        
         Returns:
-            True if connection verified, False otherwise
+            True if SPI communication is working, False otherwise
         """
         try:
-            # Use preset register for testing
-            test_value = 0x96
-            self._write_register(self.REG_PRESET, test_value)
-            time.sleep(0.001)
-
-            read_value = self._read_register(self.REG_PRESET)
-            if read_value != test_value:
-                app.logger.error(f"SPI verification failed: wrote {test_value:#04x}, read {read_value:#04x}")
+            # Test by reading a register that should have a known value
+            # Register 0x00 should never be 0xFF in normal operation
+            test_read = self._read_register(0x00)
+            if test_read == 0xFF:  # Likely SPI communication failure
                 return False
-
-            return True
+            
+            # Try reading it again to verify consistency
+            test_read2 = self._read_register(0x00)
+            return test_read == test_read2
         except Exception as e:
             app.logger.error(f"SPI verification error: {e}")
             return False
